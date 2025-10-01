@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>One Social</title>
+
+  <!-- Bootstrap + Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Quill Editor CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+
+  <style>
+    body { background:#f6f7fb; }
+    .navbar { position:sticky; top:0; z-index:1000; }
+    .search-box { flex:1; max-width:480px; }
+    .search-results {
+      display:none; position:absolute; top:100%; left:0; right:0;
+      background:#fff; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,.1);
+      max-height:300px; overflow-y:auto; z-index:2000; padding:10px;
+    }
+    .card-post { border-radius:14px; box-shadow:0 6px 18px rgba(17,24,39,.06); }
+    .btn-rounded { border-radius:10px; }
+    .hashtag { font-size:.85rem; color:#0d6efd; margin-right:6px; text-decoration:none; cursor:pointer; }
+    .ql-editor { min-height:150px; }
+    .small-muted { color:#6c757d; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar bg-white shadow-sm py-2">
+  <div class="container d-flex align-items-center justify-content-between position-relative">
+    <div class="fw-bold">One Social</div>
+
+    <!-- Search -->
+    <div class="search-box position-relative mx-2 w-100">
+      <input id="searchInput" class="form-control form-control-sm" placeholder="Tìm bài, user, hashtag...">
+      <div id="searchResults" class="search-results"></div>
+    </div>
+
+    <!-- Menu button -->
+    <button class="btn btn-light btn-sm" data-bs-toggle="offcanvas" data-bs-target="#menuCanvas">
+      <i class="bi bi-list fs-4"></i>
+    </button>
+  </div>
+</nav>
+
+<!-- MENU (offcanvas) -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="menuCanvas">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Menu</h5>
+    <button class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <div class="mb-3">
+      <i id="connIcon" class="bi bi-wifi text-success"></i>
+      <span id="connText">Online</span>
+    </div>
+
+    <a href="tag.html" class="btn btn-outline-secondary btn-rounded w-100 mb-2">
+      <i class="bi bi-hash"></i> Hashtag Topic
+    </a>
+
+    <button class="btn btn-primary btn-rounded w-100" data-bs-toggle="modal" data-bs-target="#newPostModal">
+      <i class="bi bi-plus-lg"></i> Đăng bài
+    </button>
+  </div>
+</div>
+
+<!-- FEED -->
+<div class="container my-3">
+  <div id="feed" class="d-grid gap-3"></div>
+</div>
+
+<!-- NEW POST MODAL -->
+<div class="modal fade" id="newPostModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <form id="newPostForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Viết bài mới</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input id="postDisplayName" class="form-control mb-2" placeholder="Tên hiển thị" required>
+        <input id="postTitle" class="form-control mb-2" placeholder="Tiêu đề" required>
+
+        <!-- Quill editor (rich text) -->
+        <div id="editor"></div>
+
+        <input id="postHashtags" class="form-control mt-2" placeholder="#hashtag, #khác">
+        <div class="form-text small-muted mt-1">Hashtag phải bắt đầu bằng '#', ví dụ: #javascript — phân cách bằng dấu phẩy hoặc khoảng trắng.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-rounded" data-bs-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn btn-primary btn-rounded">Đăng</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Bootstrap -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Quill -->
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+
+<!-- App script -->
+<script type="module">
+  import { initFirebase } from './firebase-config.js';
+  import {
+    collection, query, orderBy, onSnapshot, addDoc, serverTimestamp,
+    doc, updateDoc, increment, getDocs
+  } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+  const db = initFirebase();
+
+  // Helpers
+  const feed = document.getElementById('feed');
+  const searchInput = document.getElementById('searchInput');
+  const searchResults = document.getElementById('searchResults');
+
+  function escapeHtml(str=''){ return String(str).replace(/[&<>"']/g, (m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+  function formatDate(ts){ try { return ts?.toDate ? ts.toDate().toLocaleString('vi-VN') : ''; } catch(e){ return ''; } }
+  function parseHashtagsInput(v){
+    if(!v) return [];
+    return v.split(/[, ]+/).map(s=>s.trim()).filter(Boolean).map(s=> s.startsWith('#')? s : '#'+s);
+  }
+
+  // Quill Init
+  const quill = new Quill('#editor', {
+    theme: 'snow',
+    modules: {
+      toolbar: [
+        [{ 'font': [] }, { 'size': ['small', false, 'large', 'huge'] }],
+        ['bold','italic','underline','strike'],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'header': 1 }, { 'header': 2 }],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        ['link','image','video'],
+        ['clean']
+      ]
+    }
+  });
+
+  // Connection status
+  function updateConn(){
+    const online = navigator.onLine;
+    document.getElementById('connIcon').className = online ? 'bi bi-wifi text-success' : 'bi bi-wifi-off text-danger';
+    document.getElementById('connText').textContent = online ? 'Online' : 'Offline';
+  }
+  window.addEventListener('online', updateConn);
+  window.addEventListener('offline', updateConn);
+  updateConn();
+
+  // Feed realtime (summary only: name, title, hashtags, counts)
+  const postsRef = collection(db, 'posts');
+  onSnapshot(query(postsRef, orderBy('createdAt','desc')), snap => {
+    feed.innerHTML = '';
+    if(snap.empty){
+      feed.innerHTML = '<div class="text-center text-muted py-5">Chưa có bài viết nào — hãy đăng bài đầu tiên!</div>';
+      return;
+    }
+    snap.forEach(docSnap => {
+      const d = docSnap.data();
+      const id = docSnap.id;
+      const card = document.createElement('div');
+      card.className = 'card card-post p-3';
+      // hashtags clickable -> open tag.html?tag=%23xxx
+      const hashtagsHtml = (d.hashtags || []).map(h => `<a href="tag.html?tag=${encodeURIComponent(h)}" class="hashtag">${escapeHtml(h)}</a>`).join(' ');
+      card.innerHTML = `
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="fw-bold">${escapeHtml(d.displayName || 'Ẩn danh')}</div>
+            <div class="small-muted">${escapeHtml(d.title || '')}</div>
+          </div>
+          <div class="small-muted">${formatDate(d.createdAt)}</div>
+        </div>
+
+        <div class="mt-2">${hashtagsHtml}</div>
+
+        <div class="d-flex gap-2 mt-2">
+          <button class="btn btn-sm btn-outline-primary btn-rounded btn-like" data-id="${id}">
+            <i class="bi bi-hand-thumbs-up"></i> <span class="like-count">${d.likes||0}</span>
+          </button>
+          <button class="btn btn-sm btn-outline-danger btn-rounded btn-dislike" data-id="${id}">
+            <i class="bi bi-hand-thumbs-down"></i> <span class="dislike-count">${d.dislikes||0}</span>
+          </button>
+          <a href="post.html?id=${id}" class="btn btn-sm btn-outline-success btn-rounded ms-auto">
+            <i class="bi bi-box-arrow-up-right"></i> Xem
+          </a>
+        </div>
+      `;
+      // events
+      card.querySelector('.btn-like').addEventListener('click', async (e)=>{
+        const pid = e.currentTarget.dataset.id;
+        if(localStorage.getItem('liked_'+pid)) return;
+        localStorage.setItem('liked_'+pid,'1');
+        await updateDoc(doc(db,'posts',pid), { likes: increment(1) });
+      });
+      card.querySelector('.btn-dislike').addEventListener('click', async (e)=>{
+        const pid = e.currentTarget.dataset.id;
+        if(localStorage.getItem('disliked_'+pid)) return;
+        localStorage.setItem('disliked_'+pid,'1');
+        await updateDoc(doc(db,'posts',pid), { dislikes: increment(1) });
+      });
+
+      feed.appendChild(card);
+    });
+  });
+
+  // New post submit (save HTML content from quill)
+  document.getElementById('newPostForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const displayName = document.getElementById('postDisplayName').value.trim() || 'Ẩn danh';
+    const title = document.getElementById('postTitle').value.trim();
+    if(!title){ alert('Cần có tiêu đề'); return; }
+    const contentHTML = quill.root.innerHTML;
+    const hashtags = parseHashtagsInput(document.getElementById('postHashtags').value);
+    await addDoc(postsRef, {
+      displayName, title, content: contentHTML, hashtags,
+      likes:0, dislikes:0, commentsCount:0,
+      createdAt: serverTimestamp()
+    });
+    e.target.reset();
+    quill.root.innerHTML = '';
+    bootstrap.Modal.getInstance(document.getElementById('newPostModal')).hide();
+  });
+
+  // Search box logic (same simple search)
+  searchInput.addEventListener('focus', ()=> searchResults.style.display = 'block');
+  document.addEventListener('click', (e)=>{
+    if(!searchInput.contains(e.target) && !searchResults.contains(e.target)) searchResults.style.display = 'none';
+  });
+  searchInput.addEventListener('input', async ()=>{
+    const kw = searchInput.value.trim().toLowerCase();
+    if(!kw){ searchResults.innerHTML=''; return; }
+    // simple client-side search: fetch recent posts and filter
+    const snaps = await getDocs(query(postsRef, orderBy('createdAt','desc')));
+    let html = '';
+    snaps.forEach(s => {
+      const d = s.data();
+      if((d.title||'').toLowerCase().includes(kw) || (d.displayName||'').toLowerCase().includes(kw) || (d.hashtags||[]).some(h => h.toLowerCase().includes(kw))){
+        html += `<div class="p-2 border-bottom"><a href="post.html?id=${s.id}" class="text-decoration-none">${escapeHtml(d.title||'(Không tiêu đề)')}</a> — <small>${escapeHtml(d.displayName||'')}</small></div>`;
+      }
+    });
+    searchResults.innerHTML = html || '<div class="p-2 text-muted">Không tìm thấy</div>';
+  });
+
+</script>
+</body>
+</html>

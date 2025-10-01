@@ -1,0 +1,62 @@
+Một số vấn đề:
+1. Ở trang index.html:
+-Mình thử viết một bình luận và gửi, tuy là gửi được, nhưng trên bài viết không hiển thị chỉ số bình luận mới (Nghĩa là trước đó có 3 bình luận, bài viết hiển thị chỉ số 3 ở icon bong bóng, mình thử viết bình luận mới và gửi lên, lẽ ra phải tăng lên 4 nhưng vẫn hiện 3. Trong console thông báo: "Missing or insufficient permissions." Lỗi này xuất hiện sau khi cập nhật rules Firestore mới, trước đó hoạt động bình thường
+2. Trên trang post.html:
+-Cũng gặp tình trạng tương tự index, vẫn là viết và gửi bình luận được, nhưng bong bóng không đổi số bình luận, và trong console thông báo: "Missing or insufficient permissions.". Trước đó hoạt động bình thường
+3. Trên trang tag.html:
+-Không có sự cố, hoặc cũng có thể do ít tính năng nên chưa ghi nhận
+4. Trên trang profile:
+-Gặp lỗi liên quan đến bình luận trên bài viết tương tự như index và post, tuy nhiên trên profile có alert thông báo: "Không thể gửi bình luận - Vui lòng gửi lại sau" (mặc dù có thông báo như vậy nhưng bình luận vẫn gửi bình thường, trên khắp các trang index và post vẫn hiện bình luận, chỉ riêng bong bóng icon không cập nhật số bình luận. Trong console thông báo: "post comment failed p { code: "permission-denied", customData: undefined, name: "FirebaseError", toString: ƒ }
+at li._formatMsg (http://localhost:6700/OSv6/beta/profile.html:5:153819)
+at new li (http://localhost:6700/OSv6/beta/profile.html:5:151287)
+at Si.insertSync (http://localhost:6700/OSv6/beta/profile.html:5:165613)
+at Si.insert (http://localhost:6700/OSv6/beta/profile.html:5:165080)
+at Si.error (http://localhost:6700/OSv6/beta/profile.html:5:163793)
+at concat.forEach.<computed> [as error] (http://localhost:6700/OSv6/beta/profile.html:5:182219)
+at ji.forEach.n.<computed> [as error] (http://localhost:6700/OSv6/beta/profile.html:5:180576)
+at HTMLButtonElement.<anonymous>... (vân vân)
+- Khi nhấn vào nút chỉnh sửa trên Profile mình không thấy hiện mục chỉnh sửa, và trong console thông báo: "showEditForm is not defined"
+-Khi mình nhấn nút "Theo giỏi trên Profile của người khác thì hiện thông báo alert "Không thể theo giỏi". và trong console có thông báo: "doFollow error p { code: "permission-denied", customData: undefined, name: "FirebaseError", toString: ƒ }
+at li._formatMsg (http://localhost:6700/OSv6/beta/profile.html?user=ISxNvo2ibgf3pNEwvNjrQnX3eJu2:5:153819)
+at new li (http://localhost:6700/OSv6/beta/profile.html?user=ISxNvo2ibgf3pNEwvNjrQnX3eJu2:5:151287)
+at Si.insertSync (http://localhost:6700/OSv6/beta/profile.html?user=ISxNvo2ibgf3pNEwvNjrQnX3eJu2:5:165613)
+at Si.insert (http://localhost:6700/OSv6/beta/profile.html?user=ISxNvo2ibgf3pNEwvNjrQnX3eJu2:5:165080)
+at Si.error (http://localhost:6700/OSv6/beta/profile.html?user=ISxNvo2ibgf3pNEwvNjrQnX3eJu2:5:163793)
+at concat.forEach.<computed> [as error] (http://localhost:6700/OSv6/beta/profile.html?user=ISxNvo2ibgf3pNEwvNjrQnX3eJu2:5:182219)
+at ji.forEach.n.<computed> [as error] (http://localhost:6700/OSv6/beta/profile.html?user=ISxNvo2ibgf3pNEwvNjrQnX3eJu2:5:180576)
+at doFollow (http://localhost:6700/OSv6/beta/JS/.... (vân vân)
+
+
+
+
+
+
+
+
+
+
+Vấn đề mới sau khi cập nhật rules:
+-Không thể ấn like / dislke trên tất cả trang. trong console có thông báo: "Reaction failed p { code: "permission-denied", customData: undefined, name: "FirebaseError", toString: ƒ }
+at li._formatMsg (http://localhost:6700/OSv6/beta/index.html:5:153819)
+at new li (http://localhost:6700/OSv6/beta/index.html:5:151287)
+at Si.insertSync (http://localhost:6700/OSv6/beta/index.html:5:165613)
+at Si.insert (http://localhost:6700/OSv6/beta/index.html:5:165080)
+at Si.error (http://localhost:6700/OSv6/beta/index.html:5:163793)
+at concat.forEach.<computed> [as error] (http://localhost:6700/OSv6/beta/index.html:5:182219)
+at ji.forEach.n.<computed> [as error] (http://localhost:6700/OSv6/beta/index.html:5:180576)
+at toggleReaction (http://localhost:6700/OSv6/beta/....(vân vân)
+
+Trên Profile vẫn chưa thể ấn Theo giỏi và trong console thông báo:
+doFollow error p { code: "permission-denied", customData: undefined, name: "FirebaseError", toString: ƒ }
+at li._formatMsg (http://localhost:6700/OSv6/beta/profile.html?user=0dRj9KY7MrPc0Yv1RhcKsQIvSz43:5:153819)
+at new li (http://localhost:6700/OSv6/beta/profile.html?user=0dRj9KY7MrPc0Yv1RhcKsQIvSz43:5:151287)
+at Si.insertSync (http://localhost:6700/OSv6/beta/profile.html?user=0dRj9KY7MrPc0Yv1RhcKsQIvSz43:5:165613)
+at Si.insert (http://localhost:6700/OSv6/beta/profile.html?user=0dRj9KY7MrPc0Yv1RhcKsQIvSz43:5:165080)
+at Si.error (http://localhost:6700/OSv6/beta/profile.html?user=0dRj9KY7MrPc0Yv1RhcKsQIvSz43:5:163793)
+at concat.forEach.<computed> [as error] (http://localhost:6700/OSv6/beta/profile.html?user=0dRj9KY7MrPc0Yv1RhcKsQIvSz43:5:182219)
+at ji.forEach.n.<computed> [as error] (http://localhost:6700/OSv6/beta/profile.html?user=0dRj9KY7MrPc0Yv1RhcKsQIvSz43:5:180576)
+at doFollow (http://localhost:6700/OSv6/beta/JS/... (vân vân)
+-Lỗi không thể mở mục chỉnh sửa Profile, trong console thông báo:
+showEditForm is not defined
+at HTMLButtonElement.<anonymous> (http://.... (vân vân).
+[ Các lỗi không được liệt kê lại có nghĩa là đã hết lỗi ]

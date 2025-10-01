@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /posts/{postId} {
+      allow read: if true;
+
+      allow create: if
+        request.resource.data.createdAt == request.time
+        && request.resource.data.likes == 0
+        && request.resource.data.dislikes == 0
+        && request.resource.data.commentsCount == 0
+        && (
+          (request.auth != null && request.resource.data.userId == request.auth.uid)
+          || (request.auth == null)
+        );
+
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      allow update: if (
+        (request.auth != null && resource.data.userId == request.auth.uid)
+        ||
+        (
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['likes','dislikes','commentsCount'])
+          && request.resource.data.likes is int
+          && request.resource.data.dislikes is int
+          && request.resource.data.commentsCount is int
+          && request.auth != null
+          &&
+          (
+            (
+              request.resource.data.likes == resource.data.likes + 1
+              && exists(/databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid))
+              && get(/databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid)).data.type == 'like'
+            )
+            ||
+            (
+              request.resource.data.likes == resource.data.likes - 1
+              && !exists(/databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid))
+            )
+            ||
+            (
+              request.resource.data.dislikes == resource.data.dislikes + 1
+              && exists(/databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid))
+              && get(/databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid)).data.type == 'dislike'
+            )
+            ||
+            (
+              request.resource.data.dislikes == resource.data.dislikes - 1
+              && !exists(/databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid))
+            )
+            ||
+            (request.resource.data.commentsCount == resource.data.commentsCount)
+          )
+        )
+      );
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.auth != null
+                      && request.resource.data.userId == request.auth.uid
+                      && request.resource.data.displayName is string
+                      && request.resource.data.text is string
+                      && request.resource.data.createdAt == request.time;
+        allow update, delete: if false;
+      }
+
+      match /likes/{likeId} {
+        allow read: if true;
+        allow create: if request.auth != null && request.auth.uid == likeId
+                      && request.resource.data.userId == request.auth.uid
+                      && request.resource.data.type in ['like','dislike']
+                      && request.resource.data.createdAt == request.time;
+        allow update: if request.auth != null && request.auth.uid == likeId
+                      && request.resource.data.userId == request.auth.uid
+                      && request.resource.data.type in ['like','dislike'];
+        allow delete: if request.auth != null && request.auth.uid == likeId;
+      }
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.email == request.auth.token.email;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /searchStats/{doc} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}

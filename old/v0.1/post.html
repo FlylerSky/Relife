@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>One Social — Bài viết</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body { background:#f6f7fb; }
+    .container-main { max-width:900px; margin-top:20px; }
+    .card-post { border-radius:14px; padding:20px; box-shadow:0 6px 18px rgba(17,24,39,.06); background:#fff; }
+    .btn-rounded { border-radius:10px; }
+    .post-content { white-space: pre-wrap; }
+    .hashtag { color:#0d6efd; margin-right:6px; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="container container-main">
+    <a href="index.html" class="btn btn-link mb-3"><i class="bi bi-arrow-left"></i> Quay lại</a>
+    <div id="postArea" class="card-post"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    import { initFirebase } from './firebase-config.js';
+    import {
+      doc,getDoc,updateDoc,increment,collection,query,orderBy,onSnapshot,addDoc,serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+    const db=initFirebase();
+    const params=new URLSearchParams(location.search);
+    const id=params.get('id');
+    if(!id){document.getElementById('postArea').innerHTML='ID không hợp lệ';throw new Error('no id');}
+
+    const postRef=doc(db,'posts',id);
+    const postArea=document.getElementById('postArea');
+    function escapeHtml(str=''){return str.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+    function formatDate(ts){try{return ts.toDate().toLocaleString('vi-VN');}catch{return '';}}
+
+    async function load(){
+      const snap=await getDoc(postRef);
+      if(!snap.exists()){postArea.innerHTML='Không tìm thấy bài viết';return;}
+      const d=snap.data();
+      postArea.innerHTML=`
+        <h5>${escapeHtml(d.title||'')}</h5>
+        <div class="small-muted">${escapeHtml(d.displayName||'Ẩn danh')} • ${formatDate(d.createdAt)}</div>
+        <hr>
+        <div class="post-content mb-3">${escapeHtml(d.content||'')}</div>
+        <div class="mb-3">${(d.hashtags||[]).map(h=>`<a class="hashtag">${h}</a>`).join(' ')}</div>
+        <div class="d-flex gap-2">
+          <button id="likeBtn" class="btn btn-outline-primary btn-sm btn-rounded"><i class="bi bi-hand-thumbs-up"></i> <span id="likeCount">${d.likes||0}</span></button>
+          <button id="dislikeBtn" class="btn btn-outline-danger btn-sm btn-rounded"><i class="bi bi-hand-thumbs-down"></i> <span id="dislikeCount">${d.dislikes||0}</span></button>
+          <button class="btn btn-outline-secondary btn-sm btn-rounded"><i class="bi bi-chat"></i> <span id="commentCount">${d.commentsCount||0}</span></button>
+          <button id="shareBtn" class="btn btn-outline-success btn-sm btn-rounded ms-auto"><i class="bi bi-share"></i> Chia sẻ</button>
+        </div>
+        <hr>
+        <h6>Bình luận</h6>
+        <div id="commentsList"></div>
+        <textarea id="commentText" class="form-control mb-2" rows="3" placeholder="Viết bình luận..."></textarea>
+        <input id="commenterName" class="form-control mb-2" placeholder="Tên của bạn">
+        <button id="sendComment" class="btn btn-primary btn-rounded w-100">Gửi</button>
+      `;
+      bindEvents();
+    }
+
+    function bindEvents(){
+      document.getElementById('likeBtn').onclick=()=>updateDoc(postRef,{likes:increment(1)});
+      document.getElementById('dislikeBtn').onclick=()=>updateDoc(postRef,{dislikes:increment(1)});
+      document.getElementById('shareBtn').onclick=()=>navigator.clipboard.writeText(location.href);
+      document.getElementById('sendComment').onclick=async()=>{
+        const name=document.getElementById('commenterName').value.trim()||'Ẩn danh';
+        const text=document.getElementById('commentText').value.trim();if(!text)return;
+        await addDoc(collection(db,'posts',id,'comments'),{displayName:name,text,createdAt:serverTimestamp()});
+        await updateDoc(postRef,{commentsCount:increment(1)});
+        document.getElementById('commentText').value='';
+      };
+      const commentsRef=collection(db,'posts',id,'comments');
+      onSnapshot(query(commentsRef,orderBy('createdAt','desc')), snap=>{
+        const list=document.getElementById('commentsList');list.innerHTML='';
+        if(snap.empty){list.innerHTML='<div class="text-muted">Chưa có bình luận</div>';return;}
+        snap.forEach(c=>{
+          const d=c.data();
+          list.innerHTML+=`<div><b>${escapeHtml(d.displayName||'Ẩn danh')}</b>
+            <div class="small-muted">${formatDate(d.createdAt)}</div>
+            <div class="post-content">${escapeHtml(d.text)}</div><hr></div>`;
+        });
+      });
+      onSnapshot(postRef,snap=>{
+        const d=snap.data();
+        document.getElementById('likeCount').textContent=d.likes||0;
+        document.getElementById('dislikeCount').textContent=d.dislikes||0;
+        document.getElementById('commentCount').textContent=d.commentsCount||0;
+      });
+    }
+
+    load();
+  </script>
+</body>
+</html>

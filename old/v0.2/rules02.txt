@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Tất cả post
+    match /posts/{postId} {
+      
+      // Ai cũng đọc được
+      allow read: if true;
+
+      // Ai cũng có thể tạo post mới (viết bài)
+      allow create: if request.resource.data.displayName is string
+                     && request.resource.data.title is string
+                     && request.resource.data.createdAt == request.time
+                     && request.resource.data.likes == 0
+                     && request.resource.data.dislikes == 0
+                     && request.resource.data.commentsCount == 0;
+
+      // Update chỉ cho phép tăng likes/dislikes/commentsCount
+      allow update: if request.resource.data.keys().hasAll(['likes','dislikes','commentsCount'])
+                     && request.resource.data.displayName == resource.data.displayName
+                     && request.resource.data.title == resource.data.title
+                     && request.resource.data.content == resource.data.content
+                     && request.resource.data.hashtags == resource.data.hashtags
+                     && request.resource.data.createdAt == resource.data.createdAt;
+
+      // Không cho xóa bài
+      allow delete: if false;
+
+      // Subcollection comments
+      match /comments/{commentId} {
+        allow read: if true;
+
+        // Ai cũng có thể viết bình luận
+        allow create: if request.resource.data.displayName is string
+                       && request.resource.data.text is string
+                       && request.resource.data.createdAt == request.time;
+
+        // Không cho sửa hoặc xóa bình luận
+        allow update, delete: if false;
+      }
+    }
+  }
+}

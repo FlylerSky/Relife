@@ -1,0 +1,30 @@
+posts
+-> ZN5eJlH5ZxePkY5hFYgr
+--> comments
+---> cBR8z58W3wFqJLonMv6K
+----> createdAt: 22 Sept 2025 21:54:40
+----> displayName: "Flyler Sky Dẻ Rách"
+----> text: "Cài gì cơ?"
+----> userId: "0dRj9KY7MrPc0Yv1RhcKsQIvSz43"
+--> authorTag: "@oneSocialOfficial"
+--> commentsCount: 1
+--> content: "Chào mừng đến One Social..."
+--> createdAt: 22 Sept 2025 21:41:53
+--> dislikes: 0
+--> hashtags: ["#welcome", "#update_v1_1"]
+--> likes: 0
+--> title: "Giới thiệu One Social"
+--> userId: "0dRj9KY7MrPc0Yv1RhcKsQIvSz43"
+users
+-> 0dRj9KY7MrPc0Yv1RhcKsQIvSz43
+--> activated: true
+--> activationCode: "pl954"
+--> avatarUrl: null
+--> birthday: 2000-01-01
+--> country: "Việt Nam"
+--> createdAt: 22 Sept 2025 18:55:43
+--> displayName: "Flyler Sky Dẻ Rách"
+--> email: "a@gmail.com"
+--> fullName: "Game Là Dễ"
+--> gender: "male"
+--> tagName: "@oneSocialOfficial"
