@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>One Social — Profile</title>
+  
+</head>
+<body>
+ <style>
+  :root {
+  --max-width: 900px;
+  --accent: #0b84ff;
+  --bg: #f7f8fb;
+  --card: #ffffff;
+  --muted: #666;
+}
+
+/* Basic layout */
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  margin: 0;
+  background: var(--bg);
+  color: #111;
+  padding-top: 64px; /* space for fixed nav */
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+/* Fixed nav */
+.fixed-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-bottom: 1px solid #e6e9ef;
+  z-index: 1000;
+  height: 56px;
+  display: flex;
+  align-items: center;
+}
+.fixed-nav .nav-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 0 16px;
+}
+.logo { font-weight:700; color:var(--accent); text-decoration:none; }
+
+/* Profile card */
+.profile-card {
+  background: var(--card);
+  display:flex;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 8px;
+  align-items: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.avatar-wrap { text-align:center; }
+.avatar-wrap img {
+  width:96px;
+  height:96px;
+  border-radius: 50%;
+  object-fit:cover;
+  border: 2px solid #eee;
+}
+.profile-info h2 { margin:0 0 6px 0; }
+.profile-actions { margin-top:8px; }
+button { cursor:pointer; }
+
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(0,0,0,0.4);
+  z-index: 1200;
+}
+.modal.hidden { display:none; }
+.modal-inner {
+  background: #fff;
+  padding: 18px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow: auto;
+  box-sizing: border-box;
+  position: relative;
+}
+.modal-close {
+  position:absolute;
+  top:8px;
+  right:10px;
+  border: none;
+  background:transparent;
+  font-size:20px;
+}
+
+/* Comment modal specifics: avoid overflow/truncation of long words/URLs */
+.comment-modal-inner {
+  max-width: 720px;
+}
+.comment-list {
+  margin: 8px 0 12px 0;
+  max-height: 40vh;
+  overflow: auto;
+  padding-right: 6px;
+}
+.comment-item {
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.comment-author { font-weight:600; margin-bottom:6px; }
+.comment-content {
+  white-space: pre-wrap;
+  word-break: break-word; /* important to avoid overflow on very long tokens / URLs */
+  overflow-wrap: anywhere;
+}
+
+/* Posts list */
+.posts-section { margin-top: 18px; }
+.post {
+  background:#fff; padding:12px; border-radius:8px; margin-bottom:12px;
+  word-break: break-word;
+}
+
+/* responsive */
+@media (max-width:600px) {
+  .profile-card { flex-direction:column; align-items:flex-start; }
+}
+
+ </style>
+  <!-- Fixed Nav -->
+  <nav id="main-nav" class="fixed-nav">
+    <div class="nav-inner">
+      <a href="/" class="logo">One Social</a>
+      <div class="nav-actions">
+        <button id="btn-logout">Đăng xuất</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section class="profile-card" id="profile-card">
+      <div class="avatar-wrap">
+        <img id="profile-avatar" src="/default-avatar.png" alt="avatar" />
+        <input type="file" id="avatar-input" accept="image/*" style="display:none" />
+        <button id="btn-change-avatar">Thay ảnh</button>
+      </div>
+
+      <div class="profile-info">
+        <h2 id="profile-name">—</h2>
+        <p id="profile-bio">Không có mô tả</p>
+        <p class="meta">Email: <span id="profile-email">—</span></p>
+        <div class="profile-actions">
+          <button id="btn-edit-profile">Chỉnh sửa hồ sơ</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Edit profile modal -->
+    <div id="edit-modal" class="modal hidden" role="dialog" aria-hidden="true">
+      <div class="modal-inner">
+        <button class="modal-close" id="edit-close">&times;</button>
+        <h3>Chỉnh sửa hồ sơ</h3>
+        <form id="edit-form">
+          <label>
+            Tên hiển thị
+            <input type="text" id="input-name" maxlength="50" required />
+          </label>
+          <label>
+            Tiểu sử (bio)
+            <textarea id="input-bio" maxlength="300"></textarea>
+          </label>
+          <div class="form-actions">
+            <button type="submit">Lưu</button>
+            <button type="button" id="btn-cancel">Hủy</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Comments modal (ví dụ modal comment) -->
+    <div id="comment-modal" class="modal hidden" role="dialog" aria-hidden="true">
+      <div class="modal-inner comment-modal-inner">
+        <button class="modal-close" id="comment-close">&times;</button>
+        <h4>Bình luận</h4>
+        <div id="comment-list" class="comment-list">
+          <!-- comments will be injected here -->
+        </div>
+        <form id="comment-form">
+          <textarea id="comment-input" placeholder="Viết bình luận..." required></textarea>
+          <button type="submit">Gửi</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Posts list (ví dụ hiển thị bài viết của user) -->
+    <section id="posts-section" class="posts-section">
+      <h3>Bài viết</h3>
+      <div id="posts-list"></div>
+    </section>
+  </main>
+
+  <script type="module" src="./profile.js"></script>
+</body>
+</html>

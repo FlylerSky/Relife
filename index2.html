@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gọi Vercel API</title>
+    <link rel="stylesheet" href="style.css"> </head>
+<body>
+    <div class="container">
+        <h1>Giao diện gọi Vercel Function</h1>
+        <p>Thử gọi API tại **`/api/hello`**</p>
+        
+        <input type="text" id="nameInput" placeholder="Nhập tên của bạn">
+        <button id="callApiBtn">Gọi API</button>
+        
+        <div class="result-box">
+            <h2>Kết quả API:</h2>
+            <pre id="resultOutput">Chưa có dữ liệu...</pre>
+        </div>
+    </div>
+
+    <script>
+     // script.js
+
+document.addEventListener('DOMContentLoaded', () => {
+    const nameInput = document.getElementById('nameInput');
+    const callApiBtn = document.getElementById('callApiBtn');
+    const resultOutput = document.getElementById('resultOutput');
+
+    callApiBtn.addEventListener('click', async () => {
+        const name = nameInput.value.trim() || 'Thế giới';
+        
+        // 1. Xây dựng URL API
+        // Vì Function nằm trên cùng một Vercel deployment, ta dùng đường dẫn tương đối.
+        const apiUrl = `/api/hello?name=${encodeURIComponent(name)}`;
+        
+        resultOutput.textContent = 'Đang gọi API...';
+        
+        try {
+            // 2. Gọi API sử dụng fetch()
+            const response = await fetch(apiUrl);
+
+            // 3. Kiểm tra nếu phản hồi thành công (status 200-299)
+            if (!response.ok) {
+                throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}`);
+            }
+
+            // 4. Phân tích cú pháp JSON
+            const data = await response.json();
+
+            // 5. Hiển thị kết quả
+            resultOutput.textContent = JSON.stringify(data, null, 2);
+
+        } catch (error) {
+            console.error('Lỗi khi gọi API:', error);
+            resultOutput.textContent = `Lỗi: ${error.message}`;
+        }
+    });
+});
+    </script>
+    </body>
+</html>
