@@ -7,6 +7,9 @@
 body { background:#f6f7fb; 
   font-family: "One OS UI 1";
 }
+#anonDisplayName {
+  display: none;
+}
 .navbar { position:sticky; top:0; z-index:1000; }
 .search-box { flex:1; max-width:520px; }
 .search-results { display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.08); max-height:360px; overflow:auto; z-index:2000; padding:8px; }
